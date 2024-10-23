@@ -1,0 +1,388 @@
+print("Fly1")
+local UserInputService = game:GetService("UserInputService")
+local Animations = game:GetService("ReplicatedStorage"):WaitForChild("Package"):WaitForChild("Animations")
+local LocalPlayer = game.Players.LocalPlayer
+local mouse = LocalPlayer:GetMouse()
+local Character = LocalPlayer.Character
+
+if not Character then
+    Character = LocalPlayer.CharacterAdded:Wait()
+end
+
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+print("Fly2")
+local CurrentCamera = game.Workspace.CurrentCamera
+_G.FlightSpeed = 30
+print("Fly3")
+
+local forwardPressed = false
+local backwardPressed = false
+local leftPressed = false
+local rightPressed = false
+local jumpPressed = false
+local downPressed = false
+
+local idleAnimation = Humanoid:LoadAnimation(Animations.FlightIdle)
+local forwardAnimation = Humanoid:LoadAnimation(Animations.FlightW)
+local leftAnimation = Humanoid:LoadAnimation(Animations.FlightA)
+local backwardAnimation = Humanoid:LoadAnimation(Animations.FlightS)
+local rightAnimation = Humanoid:LoadAnimation(Animations.FlightD)
+local jumpAnimation = Humanoid:LoadAnimation(Animations.FlightSpace)
+local downAnimation = Humanoid:LoadAnimation(Animations.FlightDown)
+local fastFlyAnimation = Humanoid:LoadAnimation(Animations.FlyFast)
+
+local BodyVelocity = Instance.new("BodyVelocity", HumanoidRootPart)
+BodyVelocity.MaxForce = Vector3.new(0, 0, 0)
+BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+BodyVelocity.P = 1000
+
+local BodyGyro = Instance.new("BodyGyro", HumanoidRootPart)
+BodyGyro.MaxTorque = Vector3.new(0, 0, 0)
+BodyGyro.P = 4000
+BodyGyro.D = 200
+print("Fly4")
+
+local touchEnabled = false
+if UserInputService.TouchEnabled then
+    touchEnabled = true
+end
+
+function Detect(arg1, arg2, arg3, arg4)
+    local Part = Instance.new("Part", workspace.Others.Effects)
+    if arg4 ~= nil then
+        Part.Shape = arg4
+    end
+    Part.Anchored = true
+    Part.CanCollide = false
+    Part.CFrame = arg1
+    Part.Size = arg2
+    Part.Transparency = 0.5
+    Part:Destroy()
+    return Part:GetTouchingParts()
+end
+
+function ray(arg1, arg2, arg3, arg4)
+    return game.Workspace:FindPartOnRay(Ray.new(arg1, CFrame.new(arg1, arg2).lookVector * arg3), arg4)
+end
+
+local function Lock()
+    local targetCFrame = CFrame.new(HumanoidRootPart.Position, (CurrentCamera.CFrame * CFrame.new(0, 0, -3000)).p) * CFrame.new(0, 0, -200)
+    if not touchEnabled then
+        targetCFrame = CFrame.new(HumanoidRootPart.Position, mouse.Hit.p)
+    end
+    local detectedParts = Detect(targetCFrame, Vector3.new(15, 15, 400), workspace.Others)
+
+    for i = 1, #detectedParts do
+        local part = detectedParts[i]
+        local targetHumanoid = part.Parent:FindFirstChild("Humanoid")
+        local targetParent = part.Parent
+
+        if targetHumanoid and not targetParent:FindFirstChild("Chat") and targetHumanoid ~= Humanoid then
+            if targetHumanoid.Health > 0 and targetParent:FindFirstChild("HumanoidRootPart") then
+                CurrentCamera.CameraType = Enum.CameraType.Scriptable
+                _G.LockOn = targetParent
+            end
+        end
+    end
+end
+
+local function unlock()
+    CurrentCamera.CameraType = Enum.CameraType.Custom
+    CurrentCamera.CameraSubject = Humanoid
+    _G.LockOn = nil
+end
+
+_G.Flying = true
+_G.CanFly = true
+_G.CanRotate = true
+print("Fly6")
+
+local function GetAllAnims()
+    return Humanoid:GetPlayingAnimationTracks()
+end
+
+local function StopFlyAnims(arg1)
+    for _, v in ipairs(Humanoid:GetPlayingAnimationTracks()) do
+        if v ~= arg1 then
+            v:Stop()
+        end
+    end
+end
+
+local function Fly()
+        _G.Flying = true
+        Humanoid.PlatformStand = true
+        BodyVelocity.MaxForce = Vector3.new(500000, 500000, 500000)
+        BodyGyro.MaxTorque = Vector3.new(10000, 10000, 10000)
+        idleAnimation:Play()
+
+        if forwardPressed then
+            if _G.Fast == false then
+                forwardAnimation:Play(0.2, 1, 1)
+                StopFlyAnims(forwardAnimation)
+            else
+                fastFlyAnimation:Play(0.1, 1, 1)
+                StopFlyAnims(fastFlyAnimation)
+            end
+        end
+
+        if leftPressed then
+            leftAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(leftAnimation)
+            return
+        end
+
+        if backwardPressed then
+            backwardAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(backwardAnimation)
+            return
+        end
+
+        if rightPressed then
+            rightAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(rightAnimation)
+            return
+        end
+
+        if jumpPressed then
+            jumpAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(jumpAnimation)
+            return
+        end
+
+        if downPressed then
+            downAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(downAnimation)
+        end
+    end
+end
+
+local function StopFly()
+        _G.Flying = false
+        Humanoid.PlatformStand = false
+        BodyVelocity.MaxForce = Vector3.new(0, 0, 0)
+        BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        BodyGyro.MaxTorque = Vector3.new(0, 0, 0)
+        idleAnimation:Stop()
+end
+
+local function FlyFunc(arg1)
+    StopFly()
+    if arg1 == 'W' then
+        if _G.Flying then
+            if _G.Fast == false then
+                forwardAnimation:Play(0.2, 1, 1)
+                StopFlyAnims(forwardAnimation)
+            else
+                fastFlyAnimation:Play(0.1, 1, 1)
+                StopFlyAnims(fastFlyAnimation)
+            end
+        end
+        forwardPressed = true
+        backwardPressed = false
+        jumpPressed = false
+        downPressed = false
+        return
+    end
+
+    if arg1 == 'A' then
+        if _G.Flying and not forwardPressed and not backwardPressed then
+            leftAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(leftAnimation)
+        end
+        leftPressed = true
+        rightPressed = false
+        return
+    end
+
+    if arg1 == 'S' then
+        if _G.Flying then
+            backwardAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(backwardAnimation)
+        end
+        forwardPressed = false
+        backwardPressed = true
+        return
+    end
+
+    if arg1 == 'D' then
+        if _G.Flying and not forwardPressed and not backwardPressed then
+            rightAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(rightAnimation)
+        end
+        rightPressed = true
+        return
+    end
+
+    if arg1 == "Ctrl" then
+        if _G.Flying then
+            downAnimation:Play(0.2, 1, 1)
+            StopFlyAnims(downAnimation)
+        end
+        downPressed = true
+    end
+end
+
+local function StopFlyFunc(arg1)
+    if arg1 == 'W' then
+        StopFlyAnims(forwardAnimation)
+    end
+    if arg1 == 'A' then
+        StopFlyAnims(leftAnimation)
+    end
+    if arg1 == 'S' then
+        StopFlyAnims(backwardAnimation)
+    end
+    if arg1 == 'D' then
+        StopFlyAnims(rightAnimation)
+    end
+    if arg1 == "Space" then
+        StopFlyAnims(jumpAnimation)
+    end
+    if arg1 == "Ctrl" then
+        StopFlyAnims(downAnimation)
+    end
+end
+
+UserInputService.InputChanged:Connect(function(arg1, arg2)
+    if not UserInputService.GamepadEnabled or arg1.KeyCode ~= Enum.KeyCode.Thumbstick1 then return end
+
+    if arg1.Position.Magnitude > 0.2 then
+        if arg1.Position.X > 0.25 then
+            FlyFunc('D')
+        else
+            StopFlyFunc('D')
+        end
+        if arg1.Position.X < -0.25 then
+            FlyFunc('A')
+        else
+            StopFlyFunc('A')
+        end
+        if arg1.Position.Y > 0.25 then
+            FlyFunc('W')
+        else
+            StopFlyFunc('W')
+        end
+        if arg1.Position.Y < -0.25 then
+            FlyFunc('S')
+        else
+            StopFlyFunc('S')
+        end
+    end
+    StopFlyFunc('W')
+    StopFlyFunc('A')
+    StopFlyFunc('S')
+    StopFlyFunc('D')
+end)
+
+if touchEnabled then
+    local TouchControlFrame = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("TouchGui"):WaitForChild("TouchControlFrame")
+    local JumpButton = TouchControlFrame:WaitForChild("JumpButton")
+
+    if TouchControlFrame:FindFirstChild("ThumbstickFrame") then
+        var59_upvw = false
+        local ThumbstickFrame = TouchControlFrame:FindFirstChild("ThumbstickFrame")
+        var57_upvw = ThumbstickFrame:FindFirstChild("OuterImage")
+        var58_upvw = ThumbstickFrame:FindFirstChild("StickImage")
+    elseif TouchControlFrame:FindFirstChild("DynamicThumbstickFrame") then
+        var59_upvw = true
+        local DynamicThumbstickFrame = TouchControlFrame:FindFirstChild("DynamicThumbstickFrame")
+        var57_upvw = DynamicThumbstickFrame:FindFirstChild("ThumbstickStart")
+        var58_upvw = DynamicThumbstickFrame:FindFirstChild("ThumbstickEnd")
+    end
+
+    JumpButton.InputBegan:Connect(function()
+        FlyFunc("Space")
+    end)
+
+    JumpButton.InputEnded:Connect(function()
+        StopFlyFunc("Space")
+    end)
+
+    local Position = var58_upvw.Position
+
+    UserInputService.TouchEnded:Connect(function()
+        if var58_upvw.Position == Position then
+            StopFlyFunc('W')
+            StopFlyFunc('A')
+            StopFlyFunc('S')
+            StopFlyFunc('D')
+            StopFlyFunc("Space")
+            StopFlyFunc("Ctrl")
+        end
+    end)
+
+    UserInputService.TouchMoved:Connect(function(arg1, arg2)
+        if var57_upvw.Position.Y.Offset - var58_upvw.Position.Y.Offset <= -20 then
+            FlyFunc('S')
+        else
+            StopFlyFunc('S')
+        end
+        if 20 <= var57_upvw.Position.Y.Offset - var58_upvw.Position.Y.Offset then
+            FlyFunc('W')
+        else
+            StopFlyFunc('W')
+        end
+        if 20 <= var57_upvw.Position.X.Offset - var58_upvw.Position.X.Offset then
+            FlyFunc('A')
+        else
+            StopFlyFunc('A')
+        end
+        if var57_upvw.Position.X.Offset - var58_upvw.Position.X.Offset <= -20 then
+            FlyFunc('D')
+            return
+        end
+        StopFlyFunc('D')
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(arg1, arg2)
+end)
+
+if touchEnabled then
+    LocalPlayer.PlayerGui:WaitForChild("Main"):WaitForChild("MainFrame"):WaitForChild("MobileButtons").Lock.MouseButton1Click:Connect(function()
+        if _G.LockOn == nil then
+            Lock()
+        else
+            CurrentCamera.CameraType = Enum.CameraType.Custom
+            CurrentCamera.CameraSubject = Humanoid
+            _G.LockOn = nil
+        end
+    end)
+end
+
+UserInputService.InputEnded:Connect(function(arg1)
+    if arg1.KeyCode == Enum.KeyCode.W then
+        StopFlyFunc('W')
+    elseif arg1.KeyCode == Enum.KeyCode.A then
+        StopFlyFunc('A')
+    elseif arg1.KeyCode == Enum.KeyCode.S then
+        StopFlyFunc('S')
+    elseif arg1.KeyCode == Enum.KeyCode.D then
+        StopFlyFunc('D')
+    elseif arg1.KeyCode == Enum.KeyCode.Space or arg1.KeyCode == Enum.KeyCode.ButtonA then
+        StopFlyFunc("Space")
+    elseif arg1.KeyCode == Enum.KeyCode.LeftControl then
+        StopFlyFunc("Ctrl")
+    elseif arg1.KeyCode == Enum.KeyCode.LeftShift or arg1.KeyCode == Enum.KeyCode.ButtonL3 then
+        StopFlyFunc("Shift")
+    end
+end)
+
+spawn(function()
+    game:GetService("RunService").RenderStepped:connect(function()
+        StopFlyFunc('W')
+        StopFlyFunc('A')
+        StopFlyFunc('S')
+        StopFlyFunc('D')
+    end)
+end)
+
+game:GetService("ReplicatedStorage").Remote.UnlockcamOozaru.OnClientEvent:Connect(function()
+    if _G.LockOn and _G.LockOn.Name == "Oozaru" then
+        CurrentCamera.CameraType = Enum.CameraType.Custom
+        CurrentCamera.CameraSubject = Humanoid
+        _G.LockOn = nil
+    end
+end)
